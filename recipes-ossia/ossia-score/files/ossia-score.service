@@ -1,0 +1,42 @@
+[Unit]
+Description=ossia score
+Documentation=https://ossia.io
+
+# Started as early as systemd can manage rather than at multi-user.target:
+# score only needs the root filesystem and /dev/dri, and it spends ~12s in its
+# own startup, so everything else (networking, avahi, bluetooth, sshd) comes up
+# in parallel and is ready long before score wants it. Measured on qemux86-64
+# this moves the fork from 6.48s to just after local-fs.target at ~4.7s.
+DefaultDependencies=no
+Requires=local-fs.target
+After=local-fs.target systemd-udevd.service systemd-tmpfiles-setup.service
+Wants=systemd-udevd.service
+Conflicts=shutdown.target
+Before=shutdown.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ossia-score-launch
+Restart=on-failure
+RestartSec=2
+
+# Realtime audio. The limits.d drop-in grants these to the audio group for
+# interactive logins; a systemd unit does not go through PAM, so they are
+# repeated here.
+LimitRTPRIO=95
+LimitMEMLOCK=infinity
+User=root
+Group=audio
+SupplementaryGroups=audio video render input
+
+# Qt's shader cache and Mesa's live under XDG_CACHE_HOME. Pointing it at
+# CacheDirectory keeps them off the tmpfs runtime dir so they survive a reboot,
+# which is what makes the second boot faster than the first.
+Environment=XDG_RUNTIME_DIR=/run/ossia-score
+Environment=XDG_CACHE_HOME=/var/cache/ossia-score
+RuntimeDirectory=ossia-score
+RuntimeDirectoryMode=0700
+CacheDirectory=ossia-score
+
+[Install]
+WantedBy=sysinit.target
