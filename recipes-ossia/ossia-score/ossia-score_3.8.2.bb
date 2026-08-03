@@ -6,7 +6,8 @@ require ossia-score.inc
 # produced by ci/tarball.build.sh already contains all of it with the .git
 # directories stripped, and is published (and GPG-signed) on every release.
 # The support files (launcher, unit, limits) come from ossia-score.inc.
-SRC_URI += "https://github.com/ossia/score/releases/download/v${PV}/ossia.score-${PV}-src.tar.xz"
+SRC_URI += "https://github.com/ossia/score/releases/download/v${PV}/ossia.score-${PV}-src.tar.xz \
+            file://0001-linuxcheck-skip-without-X11.patch"
 SRC_URI[sha256sum] = "f12c85ec96689b73e92b954589c39187a5ae9cfdf95db08d88c0e5f4dd862259"
 
 S = "${UNPACKDIR}/ossia-score-${PV}"

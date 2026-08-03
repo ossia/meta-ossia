@@ -1,0 +1,21 @@
+From: ossia <contact@ossia.io>
+Subject: [PATCH] linuxcheck: skip when X11 is not found
+
+target_include_directories() with an unset X11_X11_INCLUDE_PATH expands to
+NOTFOUND and fails generation for the whole project, so score cannot be
+configured on a distro built without x11.
+
+Fixed upstream in ossia/score#2170; this is the minimal equivalent for 3.8.2.
+
+Upstream-Status: Backport
+
+--- a/src/linuxcheck/CMakeLists.txt
++++ b/src/linuxcheck/CMakeLists.txt
+@@ -1,3 +1,7 @@
++if(NOT X11_FOUND)
++  return()
++endif()
++
+ add_executable(linuxcheck
+   x11.cpp
+   wayland.cpp
