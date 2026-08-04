@@ -70,4 +70,10 @@ do_install:append() {
 
 RDEPENDS:${PN} += "faustlibraries"
 
+# faust builds the LLVM backend but does not link libLLVM into the shared
+# library, leaving undefined llvm:: symbols for consumers to satisfy. --no-as-
+# needed because LDFLAGS land before the objects that reference LLVM, so the
+# default --as-needed drops the dependency again.
+LDFLAGS:append = " -Wl,--no-as-needed -lLLVM -Wl,--as-needed"
+
 # faust overwrites CMAKE_CXX_FLAGS_RELEASE and drops OE's -DNDEBUG.
