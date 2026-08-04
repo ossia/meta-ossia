@@ -125,7 +125,7 @@ EXTRA_OECMAKE += "${@bb.utils.contains('OSSIA_SCORE_LTO', '1', '-DCMAKE_INTERPRO
 PARALLEL_MAKE ?= "-j 4"
 
 SYSTEMD_SERVICE:${PN} = "ossia-score.service"
-SYSTEMD_AUTO_ENABLE = "disable"
+SYSTEMD_AUTO_ENABLE = "enable"
 
 do_install:append() {
     # Vendored xtensor installs xeus/Jupyter files into ${prefix}/etc.

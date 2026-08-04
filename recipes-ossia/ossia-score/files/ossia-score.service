@@ -17,7 +17,7 @@ Before=shutdown.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/ossia-score-launch
-Restart=on-failure
+Restart=always
 RestartSec=2
 
 # Realtime audio. The limits.d drop-in grants these to the audio group for
