@@ -29,6 +29,24 @@ if [ -x /lib/systemd/systemd-udevd ]; then
   udevadm settle --timeout=10 2>/dev/null
 fi
 
+# udev only loads what a device alias points at. Modules listed here have none
+# -- nvidia-drm on Tegra is the one that matters, and without it there is no KMS
+# device and score dies on a display with no screens.
+for conf in /etc/modules-load.d/*.conf; do
+  [ -r "$conf" ] || continue
+  while read -r mod; do
+    case "$mod" in ''|\#*) continue ;; esac
+    modprobe "$mod" 2>/dev/null
+  done < "$conf"
+done
+
+# ossia-score-launch picks its backend from /dev/dri/card0, so do not race it.
+waited=0
+while [ ! -e /dev/dri/card0 ] && [ $waited -lt 50 ]; do
+  sleep 0.1
+  waited=$((waited + 1))
+done
+
 export HOME=/root
 export XDG_RUNTIME_DIR=/run/ossia-score
 export XDG_CACHE_HOME=/tmp/cache
@@ -37,8 +55,27 @@ mkdir -p "$XDG_CACHE_HOME" 2>/dev/null
 # falls back to /tmp.
 chmod 0700 "$XDG_RUNTIME_DIR" 2>/dev/null
 
+# There is no getty and no ssh here, so a score that cannot start would leave a
+# board recoverable only by reflashing. After three failures in a row that were
+# too quick to be a real session, hand the console a shell instead.
+quickfails=0
 while true; do
+  started=$(cut -d' ' -f1 /proc/uptime)
   /usr/bin/ossia-score-launch "$@"
-  echo "ossia-score exited ($?), restarting in 2s" > /dev/console 2>/dev/null
+  status=$?
+  stopped=$(cut -d' ' -f1 /proc/uptime)
+
+  if [ "${started%.*}" -gt 0 ] && [ $((${stopped%.*} - ${started%.*})) -lt 10 ]; then
+    quickfails=$((quickfails + 1))
+  else
+    quickfails=0
+  fi
+  echo "ossia-score exited ($status), restarting in 2s" > /dev/console 2>/dev/null
+
+  if [ $quickfails -ge 3 ]; then
+    echo "ossia-score failed 3 times; starting a shell, exit it to retry" > /dev/console 2>/dev/null
+    quickfails=0
+    sh < /dev/console > /dev/console 2>&1
+  fi
   sleep 2
 done
