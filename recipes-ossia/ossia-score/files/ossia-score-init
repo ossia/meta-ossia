@@ -1,6 +1,6 @@
 #!/bin/sh
 # Minimal PID 1 for appliances that need nothing but score: no systemd, no
-# udev, no networking. Boot with init=/usr/bin/ossia-score-init.
+# networking. Boot with init=/usr/bin/ossia-score-init.
 #
 # This stays PID 1 itself and runs score as a child, rather than exec'ing it.
 # Two reasons: the kernel panics if PID 1 exits, so an exec'd score turns any
@@ -19,6 +19,15 @@ mkdir -p /dev/pts /dev/shm /run/ossia-score 2>/dev/null
 mount -t devpts   devpts   /dev/pts 2>/dev/null
 mount -t tmpfs    tmpfs    /dev/shm 2>/dev/null
 mount -t tmpfs    tmpfs    /var/volatile 2>/dev/null
+
+# DRM and input drivers are modules on most boards (CONFIG_DRM=m on Tegra).
+# Without udev to autoload them /dev/dri/card0 never appears, ossia-score-launch
+# picks the headless backend, and libinput gets no devices.
+if [ -x /lib/systemd/systemd-udevd ]; then
+  /lib/systemd/systemd-udevd --daemon 2>/dev/null
+  udevadm trigger --action=add 2>/dev/null
+  udevadm settle --timeout=10 2>/dev/null
+fi
 
 export HOME=/root
 export XDG_RUNTIME_DIR=/run/ossia-score
