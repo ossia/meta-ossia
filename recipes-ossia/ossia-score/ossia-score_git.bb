@@ -39,3 +39,4 @@ do_configure:prepend() {
 # unaffected and stays subject to the check.
 INSANE_SKIP:${PN} += "buildpaths"
 INSANE_SKIP:${PN}-dbg += "buildpaths"
+INSANE_SKIP:${PN}-src += "buildpaths"
