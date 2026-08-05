@@ -49,6 +49,17 @@ while [ ! -e /dev/dri/card0 ] && [ $waited -lt 50 ]; do
   waited=$((waited + 1))
 done
 
+# Nothing here reads /etc/profile.d: there is no login shell and no systemd. Qt
+# picks eglfs_kms_egldevice on its own on Tegra, which lands on the host1x node
+# with no KMS and takes score down with it, so the drop-ins that select a backend
+# have to be applied by hand.
+set +u
+for env in /etc/profile.d/*.sh; do
+  [ -r "$env" ] || continue
+  . "$env"
+done
+set -u
+
 export HOME=/root
 export XDG_RUNTIME_DIR=/run/ossia-score
 export XDG_CACHE_HOME=/tmp/cache
