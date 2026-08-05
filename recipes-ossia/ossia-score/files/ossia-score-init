@@ -20,15 +20,8 @@ mount -t devpts   devpts   /dev/pts 2>/dev/null
 mount -t tmpfs    tmpfs    /dev/shm 2>/dev/null
 mount -t tmpfs    tmpfs    /var/volatile 2>/dev/null
 
-# DRM and input drivers are modules on most boards (CONFIG_DRM=m on Tegra).
-# Without udev to autoload them /dev/dri/card0 never appears, ossia-score-launch
-# picks the headless backend, and libinput gets no devices.
-if [ -x /lib/systemd/systemd-udevd ]; then
-  /lib/systemd/systemd-udevd --daemon 2>/dev/null
-  udevadm trigger --action=add 2>/dev/null
-  udevadm settle --timeout=10 2>/dev/null
-fi
-
+# Load these before starting udev: nvidia-drm brings up the display, and
+# udev's settle can hold the panel dark for seconds otherwise.
 # udev only loads what a device alias points at. Modules listed here have none
 # -- nvidia-drm on Tegra is the one that matters, and without it there is no KMS
 # device and score dies on a display with no screens.
@@ -39,6 +32,15 @@ for conf in /etc/modules-load.d/*.conf; do
     modprobe "$mod" 2>/dev/null
   done < "$conf"
 done
+
+# DRM and input drivers are modules on most boards (CONFIG_DRM=m on Tegra).
+# Without udev to autoload them /dev/dri/card0 never appears, ossia-score-launch
+# picks the headless backend, and libinput gets no devices.
+if [ -x /lib/systemd/systemd-udevd ]; then
+  /lib/systemd/systemd-udevd --daemon 2>/dev/null
+  udevadm trigger --action=add 2>/dev/null
+  udevadm settle --timeout=10 2>/dev/null
+fi
 
 # ossia-score-launch picks its backend from /dev/dri/card0, so do not race it.
 waited=0
