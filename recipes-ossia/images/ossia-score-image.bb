@@ -28,3 +28,6 @@ IMAGE_ROOTFS_EXTRA_SPACE = "524288"
 
 # Appended, not assigned: machines with their own FSTYPES keep them.
 IMAGE_FSTYPES:append = " wic.xz wic.bmap"
+# wic needs a .wks and this layer ships none, relying on the machine to provide
+# one. The Tegra machines do not: they build a tegraflash bundle instead.
+IMAGE_FSTYPES:remove:tegra = "wic.xz wic.bmap"
