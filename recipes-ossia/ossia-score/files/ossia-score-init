@@ -61,6 +61,21 @@ ip link set lo up 2>/dev/null
     udhcpc -i "$iface" -b -t 3 -s /usr/share/udhcpc/default.script \
         >/dev/null 2>&1
   done
+
+  # Nothing logs here and there is no way to ask the board its address short of
+  # the rescue shell, so announce it on the console once it has one, and leave
+  # it in /run for anything that wants to read it.
+  waited=0
+  while [ $waited -lt 60 ]; do
+    addr=$(ip -4 -o addr show scope global 2>/dev/null | awk '{print $2"="$4}')
+    if [ -n "$addr" ]; then
+      echo "ossia-score: address $addr" > /dev/console 2>/dev/null
+      echo "$addr" > /run/ossia-score-address 2>/dev/null
+      break
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
 ) &
 
 # Hold any key during boot to get a shell instead of score. The tty starts in
