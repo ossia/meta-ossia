@@ -59,6 +59,28 @@ for netif in /sys/class/net/*; do
       >/dev/null 2>&1
 done
 
+# Hold any key during boot to get a shell instead of score. The tty starts in
+# canonical mode, where a held key is buffered but unreadable until Enter, so
+# switch to raw and read a single byte. "min 0 time 3" returns after 0.3s at
+# worst, which is the whole cost of the check on a normal boot. /dev/console is
+# the serial line; /dev/tty0 is a keyboard attached to the board.
+held_key() {
+  for tty in /dev/console /dev/tty0; do
+    [ -c "$tty" ] || continue
+    stty -F "$tty" raw -echo min 0 time 3 2>/dev/null || continue
+    key=$(dd if="$tty" bs=1 count=1 2>/dev/null | tr -d '\0')
+    stty -F "$tty" sane 2>/dev/null
+    [ -n "$key" ] && return 0
+  done
+  return 1
+}
+
+if held_key; then
+  echo "" > /dev/console 2>/dev/null
+  echo "key held: starting a shell. Exit it and score starts." > /dev/console 2>/dev/null
+  { [ -x /bin/bash ] && /bin/bash || /bin/sh ; } < /dev/console > /dev/console 2>&1
+fi
+
 # ossia-score-launch picks its backend from /dev/dri/card0, so do not race it.
 waited=0
 while [ ! -e /dev/dri/card0 ] && [ $waited -lt 50 ]; do
