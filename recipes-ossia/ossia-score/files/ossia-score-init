@@ -1,6 +1,6 @@
 #!/bin/sh
 # Minimal PID 1 for appliances that need nothing but score: no systemd, no
-# networking. Boot with init=/usr/bin/ossia-score-init.
+# service manager. Boot with init=/usr/bin/ossia-score-init.
 #
 # This stays PID 1 itself and runs score as a child, rather than exec'ing it.
 # Two reasons: the kernel panics if PID 1 exits, so an exec'd score turns any
@@ -9,6 +9,9 @@
 #
 # CONFIG_DEVTMPFS_MOUNT gives us /dev already; everything else is on us.
 set -u
+
+# The kernel hands PID 1 no PATH, and ip and udhcpc live in /sbin.
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 mount -o remount,rw / 2>/dev/null
 mount -t proc     proc     /proc    2>/dev/null
@@ -41,6 +44,20 @@ if [ -x /lib/systemd/systemd-udevd ]; then
   udevadm trigger --action=add 2>/dev/null
   udevadm settle --timeout=10 2>/dev/null
 fi
+
+# No network manager here, so bring the interfaces up by hand. Loopback matters
+# even with no cable: score's remote control and its OSC ports bind to it, and
+# the kernel leaves lo down until someone asks. udhcpc backgrounds itself after
+# the first attempt, so an unplugged board does not delay the boot.
+ip link set lo up 2>/dev/null
+for netif in /sys/class/net/*; do
+  iface=${netif##*/}
+  # Only real hardware: skip lo and the virtual interfaces udev invents.
+  [ -e "$netif/device" ] || continue
+  ip link set "$iface" up 2>/dev/null
+  udhcpc -i "$iface" -b -t 3 -s /usr/share/udhcpc/default.script \
+      >/dev/null 2>&1
+done
 
 # ossia-score-launch picks its backend from /dev/dri/card0, so do not race it.
 waited=0
