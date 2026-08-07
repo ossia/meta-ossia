@@ -53,14 +53,30 @@ ip link set lo up 2>/dev/null
 # In the background: with no DHCP server answering, udhcpc retries for tens of
 # seconds, and score should not wait for it.
 (
-  for netif in /sys/class/net/*; do
-    iface=${netif##*/}
-    # Only real hardware: skip lo and the virtual interfaces udev invents.
-    [ -e "$netif/device" ] || continue
-    ip link set "$iface" up 2>/dev/null
-    udhcpc -i "$iface" -b -t 3 -s /usr/share/udhcpc/default.script \
-        >/dev/null 2>&1
+  # The NIC drivers carry device aliases, so udev loads them -- but a deferred
+  # probe can finish after udev has settled, and scanning once would then find
+  # nothing and never retry.
+  waited=0
+  while [ $waited -lt 30 ]; do
+    found=0
+    for netif in /sys/class/net/*; do
+      iface=${netif##*/}
+      # Only real hardware: skip lo and the virtual interfaces udev invents.
+      [ -e "$netif/device" ] || continue
+      found=1
+      [ -e "/run/dhcp-$iface" ] && continue
+      : > "/run/dhcp-$iface"
+      ip link set "$iface" up 2>/dev/null
+      echo "ossia-score: requesting a lease on $iface" > /dev/console 2>/dev/null
+      udhcpc -i "$iface" -b -t 5 -s /usr/share/udhcpc/default.script \
+          >/dev/null 2>&1
+    done
+    [ $found -eq 1 ] && break
+    sleep 1
+    waited=$((waited + 1))
   done
+  [ $waited -ge 30 ] && \
+    echo "ossia-score: no network interface appeared" > /dev/console 2>/dev/null
 
   # Nothing logs here and there is no way to ask the board its address short of
   # the rescue shell, so announce it on the console once it has one, and leave
@@ -87,12 +103,24 @@ ip link set lo up 2>/dev/null
 # read -n puts the terminal in non-canonical mode itself. dd and stty cannot:
 # stty is best-effort on the Tegra combined UART, which has partial termios
 # support, and a dd that lands on a still-canonical tty blocks PID 1 forever.
+# A held key sits in the tty buffer, but canonical mode hands nothing over until
+# a newline, so ask for raw first -- best-effort, since the Tegra combined UART
+# has partial termios support. iflag=nonblock is what makes this safe: the read
+# returns whatever is queued and never waits, whether or not stty took effect.
+# Checked repeatedly over a second, because the key may be pressed just as the
+# window opens.
 held_key() {
-  for tty in /dev/console /dev/tty0; do
-    [ -c "$tty" ] || continue
-    key=""
-    read -r -t 1 -n 1 key < "$tty" 2>/dev/null || true
-    [ -n "$key" ] && return 0
+  tries=0
+  while [ $tries -lt 10 ]; do
+    for tty in /dev/console /dev/tty0; do
+      [ -c "$tty" ] || continue
+      stty -F "$tty" raw -echo min 0 time 0 2>/dev/null || true
+      key=$(dd if="$tty" bs=1 count=1 iflag=nonblock 2>/dev/null | tr -d '\0')
+      stty -F "$tty" sane 2>/dev/null || true
+      [ -n "$key" ] && return 0
+    done
+    sleep 0.1
+    tries=$((tries + 1))
   done
   return 1
 }
