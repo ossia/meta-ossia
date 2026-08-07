@@ -50,26 +50,33 @@ fi
 # the kernel leaves lo down until someone asks. udhcpc backgrounds itself after
 # the first attempt, so an unplugged board does not delay the boot.
 ip link set lo up 2>/dev/null
-for netif in /sys/class/net/*; do
-  iface=${netif##*/}
-  # Only real hardware: skip lo and the virtual interfaces udev invents.
-  [ -e "$netif/device" ] || continue
-  ip link set "$iface" up 2>/dev/null
-  udhcpc -i "$iface" -b -t 3 -s /usr/share/udhcpc/default.script \
-      >/dev/null 2>&1
-done
+# In the background: with no DHCP server answering, udhcpc retries for tens of
+# seconds, and score should not wait for it.
+(
+  for netif in /sys/class/net/*; do
+    iface=${netif##*/}
+    # Only real hardware: skip lo and the virtual interfaces udev invents.
+    [ -e "$netif/device" ] || continue
+    ip link set "$iface" up 2>/dev/null
+    udhcpc -i "$iface" -b -t 3 -s /usr/share/udhcpc/default.script \
+        >/dev/null 2>&1
+  done
+) &
 
 # Hold any key during boot to get a shell instead of score. The tty starts in
 # canonical mode, where a held key is buffered but unreadable until Enter, so
 # switch to raw and read a single byte. "min 0 time 3" returns after 0.3s at
 # worst, which is the whole cost of the check on a normal boot. /dev/console is
 # the serial line; /dev/tty0 is a keyboard attached to the board.
+# read -t cannot outlast its timeout whatever state the terminal is in, and
+# read -n puts the terminal in non-canonical mode itself. dd and stty cannot:
+# stty is best-effort on the Tegra combined UART, which has partial termios
+# support, and a dd that lands on a still-canonical tty blocks PID 1 forever.
 held_key() {
   for tty in /dev/console /dev/tty0; do
     [ -c "$tty" ] || continue
-    stty -F "$tty" raw -echo min 0 time 3 2>/dev/null || continue
-    key=$(dd if="$tty" bs=1 count=1 2>/dev/null | tr -d '\0')
-    stty -F "$tty" sane 2>/dev/null
+    key=""
+    read -r -t 1 -n 1 key < "$tty" 2>/dev/null || true
     [ -n "$key" ] && return 0
   done
   return 1
