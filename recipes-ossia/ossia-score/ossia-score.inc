@@ -161,4 +161,26 @@ RDEPENDS:${PN} += " \
     qtdeclarative-qmlplugins \
 "
 
-RRECOMMENDS:${PN} += "alsa-utils"
+# score dlopens all of these -- cameras, discovery, tethered capture, CUDA -- so
+# nothing links them and nothing pulls them in on its own. They are
+# recommendations rather than dependencies so an image can decline any of them
+# with BAD_RECOMMENDATIONS, or replace the set wholesale here.
+#
+#   libv4l                     libv4l2.so.0, V4L2 cameras
+#   libavahi-client            libavahi-client.so.3, mDNS discovery
+#   libgphoto2                 libgphoto2.so.6, tethered cameras
+#   gstreamer1.0               libgstreamer-1.0.so.0
+#   gstreamer1.0-plugins-base  libgstapp-1.0.so.0, via the metapackage since the
+#                              libraries are split into dynamic packages
+OSSIA_SCORE_OPTIONAL_LIBS ?= " \
+    libv4l \
+    libavahi-client \
+    libgphoto2 \
+    gstreamer1.0 \
+    gstreamer1.0-plugins-base \
+"
+
+# libcuda.so.1 comes from the BSP, and only the Tegra machines have this one.
+OSSIA_SCORE_OPTIONAL_LIBS:append:tegra = " tegra-libraries-cuda"
+
+RRECOMMENDS:${PN} += "alsa-utils ${OSSIA_SCORE_OPTIONAL_LIBS}"
