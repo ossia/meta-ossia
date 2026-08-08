@@ -272,6 +272,12 @@ unset). Submodules and addons must already be present — `git submodule update
 `do_fetch`. That path is deliberately **not reproducible**: two people get
 whatever is in their own tree.
 
+## Extending it
+
+`docs/extending.md` covers adding a board, an application or a library,
+updating one, changing how a library is built, changing the kernel
+configuration, and writing an image to hardware.
+
 ## Known rough edges
 
 - `cmake/ScoreDeploymentLinux.cmake` runs `dpkg --print-architecture` and reads
