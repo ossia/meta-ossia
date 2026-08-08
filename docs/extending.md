@@ -148,6 +148,90 @@ Check the generated config, not the fragment:
     grep -E "^CONFIG_FTRACE|^# CONFIG_FTRACE" \
       tmp/work/<machine>/<kernel-recipe>/*/linux-*-build/.config
 
+## Adding a kernel driver
+
+### If the driver is in the kernel already
+
+Enable it with a `.cfg` fragment as above. Prefer `=m` over `=y`: a module can
+be loaded when the hardware appears, and making something built-in has the
+package-list consequences described in the previous section.
+
+### If it is an out-of-tree driver
+
+Write a recipe that inherits `module`. The class builds against the kernel of
+the machine being built and packages the result as `kernel-module-<name>`:
+
+    # recipes-kernel/my-camera/my-camera_1.0.bb
+    SUMMARY = "Out-of-tree camera sensor driver"
+    LICENSE = "GPL-2.0-only"
+    LIC_FILES_CHKSUM = "file://COPYING;md5=..."
+
+    inherit module
+
+    SRC_URI = "git://git.example.org/my-camera.git;branch=main;protocol=https"
+    SRCREV = "<commit, not a tag object>"
+    S = "${UNPACKDIR}/${BP}"
+
+    EXTRA_OEMAKE += "KERNEL_SRC=${STAGING_KERNEL_DIR}"
+
+    # The image installs this name, not the recipe name.
+    RPROVIDES:${PN} += "kernel-module-my-camera"
+
+Then install `kernel-module-my-camera` into the image. The recipe belongs in a
+BSP or product layer if it only makes sense for one board.
+
+### Getting it loaded
+
+A driver with a `MODULE_DEVICE_TABLE` gets a modalias, and udev loads it when
+the device appears -- nothing else to do. Drivers that bind to a device tree
+node or nothing at all have no alias and are never loaded automatically. For
+those:
+
+    KERNEL_MODULE_AUTOLOAD += "my-camera"
+
+which writes `/etc/modules-load.d/my-camera.conf`. Under systemd that file is
+read by `systemd-modules-load`; under the appliance init there is no systemd, so
+`ossia-score-init` walks `/etc/modules-load.d/*.conf` itself and modprobes what
+it finds. Either way the same file is the contract, so use it rather than
+loading the module from a script.
+
+Module parameters go through:
+
+    KERNEL_MODULE_PROBECONF += "my-camera"
+    module_conf_my-camera = "options my-camera exposure=auto"
+
+which writes `/etc/modprobe.d/`. That is how, for example, the NVIDIA DRM module
+gets `modeset=1`.
+
+### Device tree
+
+A CSI sensor is not usable because its module loaded: the device tree has to
+describe it, or nothing probes. How that is expressed is BSP-specific -- a
+`KERNEL_DEVICETREE` entry, an overlay applied at boot, or a patch against the
+BSP's dts. Check what the BSP already does for its own sensors and follow it;
+this is usually the part that takes the time, not the driver recipe.
+
+### Firmware
+
+If the sensor needs a firmware blob, install it under `${nonarch_base_libdir}/firmware`
+from its own recipe and add that package to the image. Note that a kernel
+command line may redirect the search path -- Tegra images ship
+`firmware_class.path=/etc/firmware` -- so check where the running kernel is
+actually looking before concluding the blob is missing.
+
+### Checking it worked
+
+    lsmod | grep my_camera
+    dmesg | grep -i my-camera          # probe succeeded, or the error
+    ls /dev/video*                     # a V4L2 driver should have created a node
+    v4l2-ctl --list-devices
+    modinfo my-camera                  # parameters and aliases the module declares
+
+If the node is missing but the module is loaded, the driver has not bound --
+that is a device tree problem, not a packaging one. If the module is absent
+entirely, check `/lib/modules/$(uname -r)/modules.alias` for an alias matching
+the hardware; no alias means it needs `KERNEL_MODULE_AUTOLOAD`.
+
 ## Getting an image onto hardware
 
 **SD-card and eMMC boards** (Raspberry Pi, Rockchip) build a `.wic` image:
