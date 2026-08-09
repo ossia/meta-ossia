@@ -31,3 +31,11 @@ IMAGE_FSTYPES:append = " wic.xz wic.bmap"
 # wic needs a .wks and this layer ships none, relying on the machine to provide
 # one. The Tegra machines do not: they build a tegraflash bundle instead.
 IMAGE_FSTYPES:remove:tegra = "wic.xz wic.bmap"
+
+# kernel-modules pulls every module the kernel built, and the L4T kernel ships
+# one named "error". That puts
+#   ---> Package kernel-module-error-... will be installed
+# in the do_rootfs log, where log_check greps for the word "error" and fails
+# the image over a package name. Images that install only named modules never
+# see this.
+IMAGE_LOG_CHECK_EXCLUDES += "kernel-module-error"
