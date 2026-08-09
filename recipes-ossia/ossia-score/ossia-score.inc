@@ -21,8 +21,10 @@ SRC_URI = " \
 
 inherit qt6-cmake pkgconfig systemd features_check
 
-# KFR does not build on non-x86 without clang. toolchain/clang.bbclass is in
-# oe-core; meta-clang is not needed.
+# KFR does not build on non-x86 without clang, and the JIT plugin links libclang
+# and libLLVM. Both the class and the recipes are in oe-core as of Yocto 5.3, so
+# no extra layer is required; meta-clang is still worth having where other
+# recipes in the image are built with clang, since it carries their build fixes.
 TOOLCHAIN = "clang"
 
 # Qt Gui/Widgets/OpenGL are required at find_package() time even for --no-gui.

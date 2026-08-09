@@ -23,6 +23,12 @@ A board is a kas fragment: a BSP layer, a machine name, and whatever that BSP
 needs in `local.conf`. `kas/whinlatter-raspberrypi5.yml` is the shortest
 example -- it includes the qemu config, replaces `machine:`, and adds one repo.
 
+Not every BSP fits that shape. A BSP that ships its own distro and its own
+layer set -- meta-tegra through tegra-demo-distro is the case in point -- is
+driven by that project's `setup-env` and an explicit `bblayers.conf` instead,
+with this layer added to it by absolute path. Adding such a board is a matter
+for the product layer's own setup instructions, not for a kas fragment here.
+
 Two things differ per BSP and neither is discoverable from the other configs:
 
 **How `init=` reaches the kernel.** There is no common variable. meta-tegra
