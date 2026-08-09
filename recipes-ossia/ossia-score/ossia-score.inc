@@ -82,6 +82,27 @@ PACKAGECONFIG[jit] = "-DLLVM_DIR=${STAGING_LIBDIR}/cmake/llvm,,clang,libclang cl
 # dev-deps: the JIT needs -dev packages at runtime.
 INSANE_SKIP:${PN} += "${@bb.utils.contains('PACKAGECONFIG', 'jit', 'dev-deps', '', d)}"
 
+# The avnd wrappers are generated into the build tree as one .cpp per example,
+# each a single #include of an absolute path:
+#
+#   #include "${WORKDIR}/sources/.../3rdparty/avendish/examples/.../StereoMixer.hpp"
+#
+# 2700-odd of them end up in the -src package, and because the preprocessor
+# records the path as written, __FILE__ carries it into the binary as well --
+# so buildpaths, an ERROR-level check since Yocto 5.0, fails the build on the
+# -src package, the binary and its -dbg split alike.
+#
+# This is a reproducibility defect, not a functional one: the paths appear in
+# assertion and logging strings, nothing dereferences them at runtime. Skipping
+# the check is what makes the recipe build today. The real fix is upstream, in
+# how the avnd wrappers are generated -- emitting a relative include, or adding
+# -ffile-prefix-map so __FILE__ is rewritten rather than only the debug info
+# that DEBUG_PREFIX_MAP already covers. Worth revisiting: -ffile-prefix-map
+# changes CFLAGS and so costs a full rebuild of score to evaluate.
+INSANE_SKIP:${PN} += "buildpaths"
+INSANE_SKIP:${PN}-dbg += "buildpaths"
+INSANE_SKIP:${PN}-src += "buildpaths"
+
 # Without these the plugins self-disable silently.
 PACKAGECONFIG[lv2]        = ",,lv2kit,lv2kit"
 PACKAGECONFIG[faust]      = ",,faust,faust faustlibraries"
