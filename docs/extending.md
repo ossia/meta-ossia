@@ -29,6 +29,38 @@ driven by that project's `setup-env` and an explicit `bblayers.conf` instead,
 with this layer added to it by absolute path. Adding such a board is a matter
 for the product layer's own setup instructions, not for a kas fragment here.
 
+### In order
+
+The order matters more than any individual step. Each one below fails in a way
+that is hard to read if the one before it is not already working.
+
+1. **Get `core-image-minimal` booting on the board**, from the BSP's own
+   instructions and with none of this layer involved. Debugging a fresh BitBake
+   setup and a Qt cross-build at the same time is how these ports stall.
+2. **Rehearse on qemu.** `kas/whinlatter-qemux86-64.yml` and `run.sh` bring the
+   same image up on a machine you already have. Everything except the BSP --
+   the recipe, the plugin set, the image contents, the appliance init -- is the
+   same code, so it is worth being sure that part works before a board is in
+   the loop.
+3. **Write the kas fragment**: BSP layer, machine name, whatever that BSP needs
+   in `local.conf`.
+4. **Work out how `init=` reaches that kernel**, per the next section. There is
+   no common variable, and getting this wrong is silent.
+5. **Get a display backend up**, per the section after it. `/dev/dri/card0`
+   existing is not the same as a backend working -- Qt can pick an EGL
+   integration that lands on a node with no KMS, and score exits with zero
+   screens rather than telling you which one it chose.
+6. **Choose systemd or appliance**, which decides the image recipe.
+7. **Flash it**, per "Getting an image onto hardware" at the end.
+
+Step 6 has a trap worth stating on its own. The appliance image sets
+`IMAGE_FEATURES = ""` -- no ssh, no getty -- because it expects to boot straight
+into score. That is baked into the recipe, but the `init=` argument that makes
+it do so is not, since it depends on the BSP. Build that image without also
+arranging for `init=`, and it boots the default init with no way at all to log
+in: recoverable only by reflashing. Either verify the kernel command line before
+flashing, or start from the non-appliance image, which keeps ssh.
+
 Two things differ per BSP and neither is discoverable from the other configs:
 
 **How `init=` reaches the kernel.** There is no common variable. meta-tegra

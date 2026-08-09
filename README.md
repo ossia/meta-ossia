@@ -4,6 +4,31 @@
 init, audio and GPU stacks, and score. No desktop environment. The goal is the
 full score feature set on an appliance, not a small image.
 
+## Which image do I want?
+
+Two, differing only in what starts at boot and what else is installed. Both
+carry the same score build.
+
+| | `ossia-score-image` | `ossia-score-image-appliance` |
+|---|---|---|
+| Boots into | systemd; score starts as a service | score, as PID 1 |
+| `IMAGE_FEATURES` | `ssh-server-openssh` | `""` -- none at all |
+| ssh / getty | both | neither |
+| Networking, udev, journal | yes | no service manager to run them; `ossia-score-init` brings up the network itself |
+| Also carries | tzdata, ca-certificates, e2fsprogs, unit ordering | nothing beyond score, alsa-plugins and kernel modules |
+| Recovery if score will not start | log in and fix it | console shell after three quick failures, else reflash |
+| Memory floor (qemux86-64) | more | 192 MB |
+| Use it for | anything you need to reach over the network | fixed-function appliances |
+
+The appliance variant only behaves as one if `init=/usr/bin/ossia-score-init`
+actually reaches the kernel, and how that happens is per-BSP -- the recipe sets
+`APPEND` and `CMDLINE`, which covers the Pi and qemu and does nothing on some
+other BSPs. See "Adding a board" in `docs/extending.md`; the failure mode is an
+image with no ssh, no getty and the default init, which is reflash-only.
+
+`ossia-score-image` is the one to start from on a new board. Move to the
+appliance once the board boots, the display works and score runs.
+
 ## What is pinned
 
 | | |
@@ -98,8 +123,13 @@ KMS, and score dies with zero screens. `ossia-score-tegra-env` ships the fix
 read by the eglfs plugin alone, so the package is inert — not conflicting —
 if you select vkkhrdisplay, wayland or xcb instead.
 
-`ossia-score.service` is installed but not enabled; `systemctl enable
-ossia-score` turns the image into a kiosk.
+`ossia-score.service` is **enabled by default** (`SYSTEMD_AUTO_ENABLE` in the
+recipe), so `ossia-score-image` boots straight into score without being asked.
+`systemctl disable ossia-score` if you want the image to come up at a shell
+instead. To confirm on a built rootfs rather than trusting the variable:
+
+    debugfs -R "stat /etc/systemd/system/sysinit.target.wants/ossia-score.service" \
+      tmp/deploy/images/<machine>/<image>.ext4
 
 ### No init system at all
 
