@@ -43,8 +43,10 @@ where that BSP looks for it.
 own. That choice is not always right: on Tegra it picks `eglfs_kms_egldevice`,
 lands on the host1x node that has no KMS, and score dies with zero screens.
 `ossia-score-init` sources `/etc/profile.d/*.sh` before starting score, so the
-fix is a drop-in there setting `QT_QPA_EGLFS_INTEGRATION`; a BSP layer that
-needs one should ship it.
+fix is a drop-in there setting `QT_QPA_EGLFS_INTEGRATION`. `ossia-score-tegra-env`
+in this layer is that drop-in for Tegra and the model for another board that
+needs one. To select a different backend entirely rather than tune eglfs, set
+`OSSIA_SCORE_MODE` in the same place.
 
 Check: `bitbake -e <image> | grep '^MACHINE='`, then boot it and look at the
 console -- the init script prints the address it obtained and, on failure, says

@@ -3,14 +3,19 @@
 #
 # Usage: ossia-score-launch [vulkan|eglfs|wayland|x11|cli] [score args...]
 #
-# With no mode, picks the first backend that looks usable. On an image with no
-# display server the interesting ones are vulkan (vkkhrdisplay) and eglfs, which
-# both render straight to DRM/KMS with the whole GPU dedicated to score -- see
-# the equivalent scripts in cmake/Deployment/Linux/Raspberry/, which this
-# mirrors without the AppImage library-shimming.
+# With no mode, falls back to $OSSIA_SCORE_MODE and then to picking the first
+# backend that looks usable. The environment variable is what an image sets to
+# choose a backend without overriding ExecStart in the systemd unit; the
+# appliance path picks it up from /etc/profile.d.
+#
+# On an image with no display server the interesting ones are vulkan
+# (vkkhrdisplay) and eglfs, which both render straight to DRM/KMS with the whole
+# GPU dedicated to score -- see the equivalent scripts in
+# cmake/Deployment/Linux/Raspberry/, which this mirrors without the AppImage
+# library-shimming.
 set -eu
 
-MODE="${1:-auto}"
+MODE="${1:-${OSSIA_SCORE_MODE:-auto}}"
 if [ "$#" -gt 0 ]; then
     shift
 fi

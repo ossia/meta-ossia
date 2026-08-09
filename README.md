@@ -70,8 +70,33 @@ then on the target:
 ```bash
 ossia-score-launch cli --script /path/to/scene.js   # headless
 ossia-score-launch eglfs                            # GPU, straight to DRM/KMS
-ossia-score-launch vulkan                           # vkkhrdisplay, fastest
+ossia-score-launch vulkan                           # vkkhrdisplay
 ```
+
+With no argument the mode comes from `OSSIA_SCORE_MODE`, and failing that from
+whatever looks usable (wayland, then X11, then eglfs if `/dev/dri/card0` exists,
+then `cli`). Setting the variable is how an image picks a backend without
+overriding `ExecStart` in the unit; the appliance path reads it from
+`/etc/profile.d`, since `ossia-score-init` sources those before starting score.
+
+### Choosing between eglfs and vkkhrdisplay
+
+Both render straight to DRM/KMS with no display server, but they are not
+interchangeable. Qt's vkkhrdisplay plugin creates only
+`QSurface::VulkanSurface` windows — `createPlatformWindow()` in
+`qvkkhrdisplayintegration.cpp` warns and assumes `VulkanSurface` for anything
+else — and it has neither a hardware cursor nor multi-screen support. score's
+main UI is Qt Widgets, so `vulkan` mode has not been verified to bring the
+editor up; treat it as usable for a Vulkan-only render path rather than as a
+drop-in replacement for eglfs. eglfs is the tested path.
+
+On Tegra specifically, eglfs needs one variable set. Qt picks
+`eglfs_kms_egldevice` on its own, which lands on the host1x node that has no
+KMS, and score dies with zero screens. `ossia-score-tegra-env` ships the fix
+(`QT_QPA_EGLFS_INTEGRATION=eglfs_kms`) as both a systemd drop-in and a
+`profile.d` snippet, so the systemd and appliance paths agree. That variable is
+read by the eglfs plugin alone, so the package is inert — not conflicting —
+if you select vkkhrdisplay, wayland or xcb instead.
 
 `ossia-score.service` is installed but not enabled; `systemctl enable
 ossia-score` turns the image into a kiosk.
