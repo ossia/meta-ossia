@@ -6,19 +6,34 @@ full score feature set on an appliance, not a small image.
 
 ## Which image do I want?
 
-Two, differing only in what starts at boot and what else is installed. Both
-carry the same score build.
+Three, differing in what starts at boot and what else is installed. All carry
+the same score build.
 
-| | `ossia-score-image` | `ossia-score-image-appliance` |
-|---|---|---|
-| Boots into | systemd; score starts as a service | score, as PID 1 |
-| `IMAGE_FEATURES` | `ssh-server-openssh` | `""` -- none at all |
-| ssh / getty | both | neither |
-| Networking, udev, journal | yes | no service manager to run them; `ossia-score-init` brings up the network itself |
-| Also carries | tzdata, ca-certificates, e2fsprogs, unit ordering | nothing beyond score, alsa-plugins and kernel modules |
-| Recovery if score will not start | log in and fix it | console shell after three quick failures, else reflash |
-| Memory floor (qemux86-64) | more | 192 MB |
-| Use it for | anything you need to reach over the network | fixed-function appliances |
+| | `ossia-score-image` | `ossia-score-image-appliance` | `ossia-score-image-desktop` |
+|---|---|---|---|
+| Boots into | systemd; score starts as a service | score, as PID 1 | XFCE desktop |
+| `IMAGE_FEATURES` | `ssh-server-openssh` | `""` -- none at all | + `x11-base`, `tools-debug` |
+| ssh / getty | both | neither | both, root without a password |
+| Networking, udev, journal | yes | no service manager to run them; `ossia-score-init` brings up the network itself | yes |
+| score at boot | yes | yes | no -- start it by hand |
+| Also carries | tzdata, ca-certificates, e2fsprogs, unit ordering | nothing beyond score, alsa-plugins and kernel modules | + gdb, strace, ltrace, vim, git, tmux, thunar |
+| Recovery if score will not start | log in and fix it | console shell after three quick failures, else reflash | log in and fix it |
+| Memory floor (qemux86-64) | more | 192 MB | most |
+| Use it for | anything you need to reach over the network | fixed-function appliances | working on score itself |
+
+`ossia-score-image-desktop` needs `x11` in `DISTRO_FEATURES`, which the ossia
+distro leaves out because nothing else here wants it. That is a build
+configuration change rather than a per-image one -- it alters how score itself
+is configured -- so it has its own kas file and its own build directory, and it
+shares no sstate with the other two:
+
+```bash
+./build.sh whinlatter-qemux86-64-desktop
+```
+
+The desktop image also removes `ossia-score.service` from
+`sysinit.target.wants`. Left enabled, score would take DRM/KMS through eglfs
+before the display manager starts, and the two would fight over the device.
 
 The appliance variant only behaves as one if `init=/usr/bin/ossia-score-init`
 actually reaches the kernel, and how that happens is per-BSP -- the recipe sets

@@ -1,0 +1,33 @@
+header:
+  version: 14
+  includes:
+    - whinlatter-qemux86-64.yml
+
+# The development image: same score build, plus an XFCE session.
+#
+# This is a separate build directory on purpose. XFCE is X11, and the ossia
+# distro leaves x11 out of DISTRO_FEATURES, so adding it changes the
+# configuration of score and of much of the graphics stack -- the task hashes
+# differ and none of it is shared with the other two images.
+target: ossia-score-image-desktop
+
+repos:
+  meta-openembedded:
+    layers:
+      meta-oe:
+      meta-multimedia:
+      meta-networking:
+      meta-python:
+      # meta-xfce's LAYERDEPENDS pulls in gnome-layer as well as the four above.
+      meta-gnome:
+      meta-xfce:
+
+local_conf_header:
+  desktop: |
+    DISTRO_FEATURES:append = " x11"
+
+    # Root logs in without a password on the console and over ssh. Development
+    # image only -- ossia-score-image and -appliance keep the stock behaviour.
+    # Spelled out rather than via debug-tweaks, which is not an image feature in
+    # Yocto 5.3; asking for it makes the image skip itself rather than fail.
+    EXTRA_IMAGE_FEATURES:append = " allow-empty-password empty-root-password allow-root-login serial-autologin-root"
