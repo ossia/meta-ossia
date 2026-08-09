@@ -80,6 +80,23 @@ not.
 Needs [kas](https://github.com/siemens/kas) (`pip install kas`) and the standard
 Yocto host packages.
 
+On **Ubuntu 24.04** three things bite before any of that works. BitBake needs
+unprivileged user namespaces, which 24.04 restricts by default -- every build
+otherwise stops immediately with `User namespaces are not usable by BitBake,
+possibly due to AppArmor`:
+
+```bash
+echo "kernel.apparmor_restrict_unprivileged_userns=0" \
+  | sudo tee /etc/sysctl.d/60-bitbake-userns.conf
+sudo sysctl --system
+```
+
+A `sysctl.d` file rather than a bare `sysctl -w`, so it survives a reboot;
+`unshare --user --map-root-user true` succeeding is the check. Several host
+packages are missing from a default install (`gawk diffstat texinfo chrpath
+socat lz4 pigz python3-git python3-subunit`). And PEP 668 makes 24.04 refuse
+`pip install --user kas`, so use a venv or `pipx`.
+
 ```bash
 ./build.sh                              # qemux86-64
 ./build.sh whinlatter-raspberrypi5      # Pi 5 / CM5, writes a .wic.bz2
