@@ -19,6 +19,13 @@ SRC_URI = " \
     file://95-ossia-score-rt.conf \
 "
 
+# score 3.8.2 has no vst3::PlugFrame for a Linux target with no xcb headers, so
+# score-plugin-vst3 fails to compile on a distro without x11. Applied only
+# where it is needed: adding it unconditionally would change the task hash for
+# X11 builds and force them to recompile score for no reason.
+SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', 'x11', '', \
+    'file://0001-vst3-define-PlugFrame-when-xcb-is-absent.patch', d)}"
+
 inherit qt6-cmake pkgconfig systemd features_check
 
 # KFR does not build on non-x86 without clang, and the JIT plugin links libclang

@@ -1,0 +1,31 @@
+From: meta-ossia
+Subject: [PATCH] vst3: define PlugFrame on Linux without xcb
+
+vst3::PlugFrame has three implementations, selected by preprocessor guards:
+one for _WIN32, one for __APPLE__, and the X11 one in Linux/PlugFrame.hpp
+behind __has_include(<xcb/xcb.h>). On a Linux target built without X11 -- no
+xcb headers in the sysroot -- none of the three is selected, the forward
+declaration in WindowContainer.hpp is all that remains, and Window.cpp fails
+with "allocation of incomplete type 'PlugFrame'".
+
+Widen the first guard so the no-op implementation also covers Linux without
+xcb. It is the same shape as the _WIN32 one: the plugin's own window is not
+embedded, which is what a headless image wants anyway.
+
+Fixed differently upstream, by merging the two blocks into a single guard
+`defined(_WIN32) || defined(__APPLE__) || !__has_include(<xcb/xcb.h>)`. This
+keeps the change minimal against the 3.8.2 release so it applies cleanly.
+
+Upstream-Status: Backport
+
+--- a/src/plugins/score-plugin-vst3/Vst3/UI/PlugFrame.hpp
++++ b/src/plugins/score-plugin-vst3/Vst3/UI/PlugFrame.hpp
+@@ -9,7 +9,7 @@
+ namespace vst3
+ {
+ 
+-#if defined(_WIN32)
++#if defined(_WIN32) || (!defined(__APPLE__) && !__has_include(<xcb/xcb.h>))
+ class PlugFrame final : public Steinberg::IPlugFrame
+ {
+ public:
