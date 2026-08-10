@@ -359,6 +359,42 @@ unset). Submodules and addons must already be present — `git submodule update
 `do_fetch`. That path is deliberately **not reproducible**: two people get
 whatever is in their own tree.
 
+### What a rebuild costs
+
+Changing one file does **not** rebuild the world: BitBake re-runs `ossia-score`
+from `do_compile` onward and everything else restores from sstate. Two things
+decide what that actually costs.
+
+**Unity granularity is the target, not the file.** score sets
+`CMAKE_UNITY_BUILD_BATCH_SIZE 5000`, which is effectively infinite, so each
+target becomes exactly one translation unit — 84 of them across the project.
+Editing one `.cpp` recompiles every source in its target as a single TU:
+
+| edited | cost |
+|---|---|
+| a file in a small plugin | seconds to minutes |
+| a file in `score-plugin-avnd` | its whole TU — the heaviest, tens of minutes and >14 GB resident |
+| a widely included `score-lib-*` header | many of the 84 chunks |
+| anything | plus the static relink and `do_install`/`do_package`/`do_package_qa` |
+
+Lowering the batch size, or `UNITY_BUILD OFF` on the target being worked on
+(as `hwinfo.cmake` already does, for a different reason), trades total build
+time for much better incremental turnaround.
+
+**Incremental only works if the build tree survives.** `externalsrc` builds in
+`${WORKDIR}/build` and ninja reuses it, so `rm_work` would throw away exactly
+what makes the next build fast. Add `RM_WORK_EXCLUDE += "ossia-score"` to any
+build directory you intend to iterate in.
+
+There is also a trap that made score rebuild when *nothing* had changed, fixed
+in `ossia-score_git.bb` and worth knowing about: oe stamps `SOURCE_DATE_EPOCH`
+from a `do_unpack` postfunc whose helper only consults git when `SRC_URI` names
+a git fetcher. With `externalsrc` the `SRC_URI` is `file://` only, so it falls
+through to the newest mtime in the checkout — and a bare `git fetch` was enough
+to change score's task hash and buy a full rebuild. Setting `SOURCE_DATE_EPOCH`
+does not help, because the stamp is written by the function rather than read
+from the variable; the recipe replaces the function instead.
+
 ## Extending it
 
 `docs/extending.md` covers adding a board, an application or a library,
