@@ -32,10 +32,19 @@ IMAGE_FSTYPES:append = " wic.xz wic.bmap"
 # one. The Tegra machines do not: they build a tegraflash bundle instead.
 IMAGE_FSTYPES:remove:tegra = "wic.xz wic.bmap"
 
-# kernel-modules pulls every module the kernel built, and the L4T kernel ships
-# one named "error". That puts
-#   ---> Package kernel-module-error-... will be installed
-# in the do_rootfs log, where log_check greps for the word "error" and fails
-# the image over a package name. Images that install only named modules never
-# see this.
-IMAGE_LOG_CHECK_EXCLUDES += "kernel-module-error"
+# Two benign messages that log_check, which greps do_rootfs's log for "error",
+# would otherwise fail the image over.
+#
+#   kernel-module-error   kernel-modules pulls every module the kernel built,
+#                         and the L4T kernel ships one named "error", so
+#                         "Package kernel-module-error-... will be installed"
+#                         lands in the log. Images installing named modules
+#                         only never see this.
+#   getty@tty1.service    systemd-ossia-ordering masks it on purpose, so score
+#                         owns the VT; systemd's preset step then reports
+#                         "Failed to preset unit: ... is masked".
+#
+# Entries are split on whitespace, so each must be a single token -- a phrase
+# like "is masked" would become the patterns "is" and "masked" and silence
+# almost everything.
+IMAGE_LOG_CHECK_EXCLUDES += "kernel-module-error getty@tty1.service"
