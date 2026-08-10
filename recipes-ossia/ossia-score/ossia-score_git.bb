@@ -25,6 +25,28 @@ EXTERNALSRC_SYMLINKS = ""
 EXTERNALSRC = "${SCORE_SRC_ROOT}"
 EXTERNALSRC_BUILD = "${WORKDIR}/build"
 
+# oe stamps SOURCE_DATE_EPOCH from a do_unpack postfunc, and the helper it
+# calls only trusts git when SRC_URI names a git fetcher:
+#
+#   def get_source_date_epoch_from_git(d, sourcedir):
+#       if not "git://" in d.getVar('SRC_URI') and not "gitsm://" in ...:
+#           return None
+#
+# externalsrc's SRC_URI is file:// only, so it falls through to the newest
+# mtime in the source tree. That moves whenever anything touches the checkout
+# -- a git fetch is enough -- which changes this recipe's task hashes and buys
+# a full rebuild of score, about an hour, from an unchanged source. Two build
+# directories an hour apart recorded 1786353217 and 1786349944 for an
+# identical tree, and neither was the HEAD commit date.
+#
+# Setting SOURCE_DATE_EPOCH does not help: the stamp is written by this
+# function rather than read from the variable, so the function is what has to
+# be replaced. Nothing is lost -- this recipe builds whatever is in the tree
+# and is documented as not reproducible, so the epoch conveys nothing here.
+python create_source_date_epoch_stamp() {
+    oe.reproducible.epochfile_write(1704067200, d.getVar('SDE_FILE'), d)
+}
+
 # externalsrc has no do_fetch, so submodules and addons must already be there.
 do_configure:prepend() {
     if [ ! -f "${S}/3rdparty/libossia/CMakeLists.txt" ]; then
