@@ -94,6 +94,29 @@ ip link set lo up 2>/dev/null
   done
 ) &
 
+# An ssh server, if the image ships one. There is no service manager here, so
+# an installed dropbear would otherwise sit on disk and never run. Installing
+# it is the decision; this only honours it -- drop ssh-server-dropbear from
+# IMAGE_FEATURES to turn it off, and nothing here needs changing.
+#
+# Note what this means on an image built with allow-empty-password: dropbear
+# gets -B from /etc/default/dropbear and root's password field is empty, so
+# anyone on the network has root. That is a development posture, not a
+# shipping one.
+if [ -x /usr/sbin/dropbear ]; then
+  set +u
+  [ -r /etc/default/dropbear ] && . /etc/default/dropbear
+  set -u
+  mkdir -p /etc/dropbear 2>/dev/null
+  # -R generates host keys on demand. A freshly flashed image has none, and
+  # without it dropbear exits immediately instead of listening.
+  if dropbear -R ${DROPBEAR_EXTRA_ARGS:-} >/dev/null 2>&1; then
+    echo "ossia-score: sshd listening on port 22" > /dev/console 2>/dev/null
+  else
+    echo "ossia-score: sshd failed to start" > /dev/console 2>/dev/null
+  fi
+fi
+
 # Hold any key during boot to get a shell instead of score. The tty starts in
 # canonical mode, where a held key is buffered but unreadable until Enter, so
 # switch to raw and read a single byte. "min 0 time 3" returns after 0.3s at
