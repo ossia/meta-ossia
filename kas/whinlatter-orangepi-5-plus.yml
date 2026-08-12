@@ -21,6 +21,16 @@ repos:
 
 local_conf_header:
   rk3588: |
+    # meta-rockchip derives the boot console from SERIAL_CONSOLES, which the
+    # ossia distro deliberately empties to keep a getty off the serial port.
+    # Empty makes RK_CONSOLE_DEVICE's ${SERIAL_CONSOLES.split(';')[1]} index off
+    # the end, and every recipe parse dies on the expansion. Set both directly:
+    # they configure U-Boot's extlinux cmdline and TF-A's UART, which is the
+    # boot console and has nothing to do with whether a login prompt runs on it.
+    # ttyS2 at 1500000 is the rk3588 debug UART, matching rockchip-defaults.inc.
+    RK_CONSOLE_DEVICE = "ttyS2"
+    RK_CONSOLE_BAUD = "1500000"
+
     # meta-rockchip's mesa bbappend skips rk3588; without this the board runs
     # on llvmpipe. libclc is required: GALLIUMDRIVERS and VULKAN_DRIVERS are
     # gated on 'panfrost libclc' together and oe-core only adds libclc on x86.
