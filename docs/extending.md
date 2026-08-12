@@ -37,6 +37,34 @@ driven by that project's `setup-env` and an explicit `bblayers.conf` instead,
 with this layer added to it by absolute path. Adding such a board is a matter
 for the product layer's own setup instructions, not for a kas fragment here.
 
+### When the BSP branch is older than oe-core
+
+A BSP layer having a branch named after the release you are building is not a
+promise that it works with it. meta-rockchip's `whinlatter` branch is the worked
+example: it was cut from a base predating whinlatter oe-core, and adding the
+Orange Pi 5 Plus meant fixing three separate references to things oe-core had
+removed or changed underneath it -- `kernel-fitimage.bbclass`, replaced by
+`kernel-fit-image.bbclass`; `xf86-input-mouse`, whose recipe is gone; and
+`SERIAL_CONSOLES`, which it indexes into and which our distro sets empty.
+
+Two of those halt parsing before any task runs, and the third only appears once
+dependency resolution reaches the x11 packagegroups. So the fastest way through
+is to resolve the whole graph without building anything:
+
+```bash
+kas shell -c "bitbake -n <image>" kas/<fragment>.yml
+```
+
+That reaches every missing provider in minutes rather than surfacing them one
+at a time, hours apart, from a real build.
+
+The fix belongs in the board fragment, next to the other workarounds for that
+BSP, not in a patch to the BSP itself -- and `:forcevariable` is usually
+required, because machine configuration is parsed *after* `local.conf` and
+these variables are set there with a hard `=`. Check whether the repair is
+already upstream on the BSP's `master` before writing your own: if it is, the
+fragment should say so, so the workaround can be dropped at the next bump.
+
 ### In order
 
 The order matters more than any individual step. Each one below fails in a way
