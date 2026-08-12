@@ -31,6 +31,28 @@ local_conf_header:
     RK_CONSOLE_DEVICE = "ttyS2"
     RK_CONSOLE_BAUD = "1500000"
 
+    # rk3588s.inc asks for KERNEL_CLASSES = "kernel-fitimage", a class oe-core
+    # deleted when it rewrote FIT support as kernel-fit-image.bbclass. The
+    # rework reached meta-rockchip master and wrynose but never the whinlatter
+    # branch, so on whinlatter oe-core every rk3588 machine dies at parse with
+    # "Could not inherit file classes/kernel-fitimage.bbclass".
+    #
+    # Boot a plain kernel instead of fixing FIT. rockchip-extlinux.inc supports
+    # it directly: the extlinux config gains an explicit FDTDIR, and
+    # kernel-devicetree is added to the image, so U-Boot loads /boot/Image and
+    # the dtb separately. We get nothing from FIT here -- no signature
+    # verification, no multi-dtb selection, one board, one device tree.
+    #
+    # forcevariable on KERNEL_CLASSES because rk3588s.inc sets it with a hard
+    # '=' and machine config is parsed after local.conf. KERNEL_IMAGETYPE is
+    # only ?= there, so a plain assignment already wins.
+    KERNEL_IMAGETYPE = "Image"
+    KERNEL_CLASSES:forcevariable = ""
+
+    # rockchip-wic.inc leaves the .wic uncompressed; an XFCE rootfs is several
+    # GB of mostly zeroes. bmaptool reads the compressed file directly.
+    WIC_COMPRESSION_EXTENSION = ".bz2"
+
     # meta-rockchip's mesa bbappend skips rk3588; without this the board runs
     # on llvmpipe. libclc is required: GALLIUMDRIVERS and VULKAN_DRIVERS are
     # gated on 'panfrost libclc' together and oe-core only adds libclc on x86.

@@ -21,9 +21,7 @@ header:
 machine: orangepi-5-plus
 target: ossia-score-image-desktop
 
-local_conf_header:
-  orangepi-5-plus-desktop: |
-    # Xorg drives the display through the DRM/KMS master; on rk3588 that is
-    # rockchip-drm, with panthor as a separate render-only node. modesetting is
-    # the driver for that split, and it is what mesa's kmsro path expects.
-    XSERVER:append = " xserver-xorg-module-libint10 xf86-video-modesetting"
+# Nothing to add for Xorg: rockchip-defaults.inc already sets XSERVER to a list
+# built around xf86-video-modesetting, which is the right driver for rk3588 --
+# the KMS master is rockchip-drm and panthor is a separate render-only node,
+# the split mesa's kmsro path expects.
