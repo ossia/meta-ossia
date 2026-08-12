@@ -53,6 +53,16 @@ local_conf_header:
     # GB of mostly zeroes. bmaptool reads the compressed file directly.
     WIC_COMPRESSION_EXTENSION = ".bz2"
 
+    # rockchip-defaults.inc's XSERVER still lists xf86-input-mouse, a recipe
+    # oe-core has dropped, so any x11 build of this board fails to find a
+    # provider. Same stale-branch story as the fitImage class above.
+    #
+    # This is the set the Pi 5 desktop image resolved to and shipped with.
+    # No input driver is named because none needs to be: xf86-input-libinput
+    # arrives through the x11 packagegroups, which is how it reached that image.
+    # Inert on a non-x11 build, where nothing reads XSERVER at all.
+    XSERVER:forcevariable = "xserver-xorg xserver-xorg-extension-glx xf86-video-modesetting"
+
     # meta-rockchip's mesa bbappend skips rk3588; without this the board runs
     # on llvmpipe. libclc is required: GALLIUMDRIVERS and VULKAN_DRIVERS are
     # gated on 'panfrost libclc' together and oe-core only adds libclc on x86.

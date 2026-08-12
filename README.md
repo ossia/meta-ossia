@@ -28,13 +28,14 @@ is configured -- so it has its own kas file per board and its own build
 directory, and it shares no sstate with the other two:
 
 ```bash
-./build.sh whinlatter-qemux86-64-desktop   # qemu
-./build.sh whinlatter-raspberrypi5-desktop # Pi 5 / CM5, writes a .wic.bz2
+./build.sh whinlatter-qemux86-64-desktop     # qemu
+./build.sh whinlatter-raspberrypi5-desktop   # Pi 5 / CM5, writes a .wic.bz2
+./build.sh whinlatter-orangepi-5-plus-desktop # Orange Pi 5 Plus, .wic.bz2
 ```
 
-The Pi 5 variant is the same desktop delta composed onto
-`whinlatter-raspberrypi5.yml`; it shares no sstate with the plain
-`whinlatter-raspberrypi5` build either, for the same reason.
+The two board variants are the same desktop delta composed onto
+`whinlatter-raspberrypi5.yml` and `whinlatter-orangepi-5-plus.yml`; neither
+shares sstate with the plain build of its own board, for the same reason.
 
 The desktop image also removes `ossia-score.service` from
 `sysinit.target.wants`. Left enabled, score would take DRM/KMS through eglfs
@@ -103,11 +104,18 @@ socat lz4 pigz python3-git python3-subunit`). And PEP 668 makes 24.04 refuse
 `pip install --user kas`, so use a venv or `pipx`.
 
 ```bash
-./build.sh                                 # qemux86-64
-./build.sh whinlatter-raspberrypi5         # Pi 5 / CM5, writes a .wic.bz2
-./build.sh whinlatter-raspberrypi5-desktop # the same board, XFCE image
+./build.sh                                    # qemux86-64
+./build.sh whinlatter-raspberrypi5            # Pi 5 / CM5, writes a .wic.bz2
+./build.sh whinlatter-raspberrypi5-desktop    # the same board, XFCE image
+./build.sh whinlatter-orangepi-5-plus         # Orange Pi 5 Plus (RK3588)
+./build.sh whinlatter-orangepi-5-plus-desktop # the same board, XFCE image
 OSSIA_YOCTO_TARGET=ossia-score-image-appliance ./build.sh
 ```
+
+Both board images are a single `.wic.bz2`, written straight to an SD card, eMMC
+or NVMe -- `bmaptool copy <image>.wic.bz2 /dev/sdX`, or `bzcat` piped to `dd` if
+you have no `bmaptool`. The bootloader is inside the image, in the raw sectors
+the Rockchip and Pi boot ROMs look at, so there is nothing to flash separately.
 
 Budget several hours and 90–120 GB for the first build. `DL_DIR` and
 `SSTATE_DIR` default to alongside the build directory so every machine shares
