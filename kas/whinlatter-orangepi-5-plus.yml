@@ -66,7 +66,11 @@ local_conf_header:
     # meta-rockchip's mesa bbappend skips rk3588; without this the board runs
     # on llvmpipe. libclc is required: GALLIUMDRIVERS and VULKAN_DRIVERS are
     # gated on 'panfrost libclc' together and oe-core only adds libclc on x86.
-    PACKAGECONFIG:append:pn-mesa = " kmsro panfrost libclc"
+    #
+    # No kmsro here: mesa dropped it as a separate gallium driver once every
+    # driver learned to handle a display-only KMS node itself, and naming it
+    # fails do_recipe_qa with "invalid PACKAGECONFIG(s)".
+    PACKAGECONFIG:append:pn-mesa = " panfrost libclc"
 
     # panthor will not probe without ARM's CSF firmware; G610 is arch 10.8.
     IMAGE_INSTALL:append = " linux-firmware-mali-csffw-arch108"
