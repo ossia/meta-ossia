@@ -1,0 +1,29 @@
+header:
+  version: 14
+  includes:
+    - whinlatter-orangepi-5-plus.yml
+    - whinlatter-qemux86-64-desktop.yml
+
+# The Orange Pi 5 Plus development image: the rk3588 machine, the panfrost and
+# mali firmware settings from whinlatter-orangepi-5-plus.yml, plus the XFCE
+# session and login tweaks from whinlatter-qemux86-64-desktop.yml. The latter
+# is named after the machine it was first written for, but nothing in it past
+# the base include is machine-specific.
+#
+# Both includes pull in whinlatter-qemux86-64.yml, which sets machine and
+# target; restate both here so this file wins over whichever include kas merges
+# last.
+#
+# This needs its own build directory. XFCE is X11, and the ossia distro leaves
+# x11 out of DISTRO_FEATURES, so the desktop include adds it back -- that
+# changes how score and much of the graphics stack are configured, so the task
+# hashes differ and nothing is shared with a non-desktop orangepi-5-plus build.
+machine: orangepi-5-plus
+target: ossia-score-image-desktop
+
+local_conf_header:
+  orangepi-5-plus-desktop: |
+    # Xorg drives the display through the DRM/KMS master; on rk3588 that is
+    # rockchip-drm, with panthor as a separate render-only node. modesetting is
+    # the driver for that split, and it is what mesa's kmsro path expects.
+    XSERVER:append = " xserver-xorg-module-libint10 xf86-video-modesetting"
