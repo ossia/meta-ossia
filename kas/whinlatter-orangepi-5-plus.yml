@@ -18,6 +18,23 @@ repos:
   meta-rockchip:
     url: https://git.yoctoproject.org/meta-rockchip
     refspec: whinlatter
+    # The rkbin recipes -- the DDR init blob, TF-A and OP-TEE, i.e. everything
+    # the board needs to reach U-Boot -- still set S = "${WORKDIR}/git", which
+    # oe-core now rejects outright in do_unpack because the git fetcher unpacks
+    # there by default. Nothing in the bootloader chain builds without this.
+    #
+    # Both are upstream commits, applied unchanged, and both are on
+    # meta-rockchip master; drop them whenever the refspec moves past them.
+    # They are patches rather than bbappends on purpose: a bbappend for a recipe
+    # no other board has would be a dangling append breaking every non-rockchip
+    # build in this layer.
+    patches:
+      rkbin-s:
+        repo: meta-ossia
+        path: patches/meta-rockchip/0001-rkbin-s.patch
+      rkbin-native-s:
+        repo: meta-ossia
+        path: patches/meta-rockchip/0002-rkbin-native-s.patch
 
 local_conf_header:
   rk3588: |

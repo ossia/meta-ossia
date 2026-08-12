@@ -1,0 +1,49 @@
+From e59f6fcb66091ea5efe33f3f3d8be09b1f65bbfb Mon Sep 17 00:00:00 2001
+From: Quentin Schulz <quentin.schulz@cherry.de>
+Date: Wed, 25 Jun 2025 14:07:13 +0200
+Subject: [PATCH] bsp: rkbin: fix build since S = "${WORKDIR}/git" is implied
+ by OE-Core
+
+S = "${WORKDIR}/git" is now implied when using the git fetcher and since
+commit 46480a5e6674 ("insane/do_qa_unpack: add checks that ensure S is
+set correctly") the build fails if it is set to such a value.
+
+Therefore, let's remove the line in rkbin to make the build of those
+recipes successful again.
+
+Reviewed-by: Trevor Woerner <twoerner@gmail.com>
+Signed-off-by: Quentin Schulz <quentin.schulz@cherry.de>
+---
+ recipes-bsp/rkbin/rk3308-rkbin_git.bb | 2 --
+ recipes-bsp/rkbin/rockchip-rkbin.inc  | 2 --
+ 2 files changed, 4 deletions(-)
+
+diff --git a/recipes-bsp/rkbin/rk3308-rkbin_git.bb b/recipes-bsp/rkbin/rk3308-rkbin_git.bb
+index eaf2ce1..ab2c70f 100644
+--- a/recipes-bsp/rkbin/rk3308-rkbin_git.bb
++++ b/recipes-bsp/rkbin/rk3308-rkbin_git.bb
+@@ -13,8 +13,6 @@ PROVIDES += "optee-os"
+ 
+ inherit bin_package deploy
+ 
+-S = "${WORKDIR}/git"
+-
+ COMPATIBLE_MACHINE = "^$"
+ COMPATIBLE_MACHINE:rk3308 = "rk3308"
+ 
+diff --git a/recipes-bsp/rkbin/rockchip-rkbin.inc b/recipes-bsp/rkbin/rockchip-rkbin.inc
+index 79149c5..25ec58c 100644
+--- a/recipes-bsp/rkbin/rockchip-rkbin.inc
++++ b/recipes-bsp/rkbin/rockchip-rkbin.inc
+@@ -7,8 +7,6 @@ inherit bin_package deploy
+ 
+ INHIBIT_DEFAULT_DEPS = "1"
+ 
+-S = "${WORKDIR}/git"
+-
+ COMPATIBLE_MACHINE = "^$"
+ COMPATIBLE_MACHINE:rk3308 = "rk3308"
+ COMPATIBLE_MACHINE:rk3566 = "rk3566"
+-- 
+2.43.0
+

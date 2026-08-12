@@ -1,0 +1,36 @@
+From 61505560d494e8a5409087e55f1ac605aa61c814 Mon Sep 17 00:00:00 2001
+From: Quentin Schulz <quentin.schulz@cherry.de>
+Date: Wed, 25 Jun 2025 14:07:14 +0200
+Subject: [PATCH] bsp: rkbin-native: fix build since ${WORKDIR} isn't allowed
+ in S anymore
+
+Since commit 46480a5e6674 ("insane/do_qa_unpack: add checks that ensure
+S is set correctly") it is not allowed to have S refer to WORKDIR
+directly and we should instead use UNPACKDIR.
+
+The default path of S is ${UNPACKDIR}/${BP} which is where the git
+fetcher will unpack the sources. However, we want to go into the tools/
+directory, hence S being ${UNPACKDIR}/${BP}/tools now.
+
+Reviewed-by: Trevor Woerner <twoerner@gmail.com>
+Signed-off-by: Quentin Schulz <quentin.schulz@cherry.de>
+---
+ recipes-bsp/rkbin/rockchip-rkbin-native_git.bb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/recipes-bsp/rkbin/rockchip-rkbin-native_git.bb b/recipes-bsp/rkbin/rockchip-rkbin-native_git.bb
+index 2adccdd..71d4246 100644
+--- a/recipes-bsp/rkbin/rockchip-rkbin-native_git.bb
++++ b/recipes-bsp/rkbin/rockchip-rkbin-native_git.bb
+@@ -7,7 +7,7 @@ LIC_FILES_CHKSUM = "file://../LICENSE;md5=11e3673115959bf596feaaa6ea7ce9a5"
+ 
+ inherit native
+ 
+-S = "${WORKDIR}/git/tools"
++S = "${UNPACKDIR}/${BP}/tools"
+ 
+ # ddrbin_tool.py only uses python and core modules.
+ # Yocto depends on a host python anyway so we can simply ignore that dependency
+-- 
+2.43.0
+
