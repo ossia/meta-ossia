@@ -23,6 +23,14 @@ A board is a kas fragment: a BSP layer, a machine name, and whatever that BSP
 needs in `local.conf`. `kas/whinlatter-raspberrypi5.yml` is the shortest
 example -- it includes the qemu config, replaces `machine:`, and adds one repo.
 
+Fragments compose. `kas/whinlatter-raspberrypi5-desktop.yml` includes both the
+board fragment and `whinlatter-qemux86-64-desktop.yml`, whose name is only
+historical -- everything in it past the base include (the meta-xfce/meta-gnome
+layers, `x11` in `DISTRO_FEATURES`, the login tweaks) is machine-independent.
+Both of those include the base config, which sets `machine:` and `target:`, so a
+composing fragment has to restate the two itself rather than rely on which
+include kas merges last; `kas dump` is how you check that it came out right.
+
 Not every BSP fits that shape. A BSP that ships its own distro and its own
 layer set -- meta-tegra through tegra-demo-distro is the case in point -- is
 driven by that project's `setup-env` and an explicit `bblayers.conf` instead,

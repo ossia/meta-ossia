@@ -1,0 +1,22 @@
+header:
+  version: 14
+  includes:
+    - whinlatter-raspberrypi5.yml
+    - whinlatter-qemux86-64-desktop.yml
+
+# The Pi 5 development image: the raspberrypi5 machine and its .wic.bz2 from
+# whinlatter-raspberrypi5.yml, plus the XFCE session, the login tweaks and the
+# meta-xfce/meta-gnome layers from whinlatter-qemux86-64-desktop.yml. That file
+# is named after the machine it was written for, but everything in it beyond
+# the base include is machine-independent, so it composes here unchanged.
+#
+# Both includes pull in whinlatter-qemux86-64.yml, which sets machine and
+# target; restate both here so this file wins over whichever include kas merges
+# last.
+#
+# This needs its own build directory. XFCE is X11, and the ossia distro leaves
+# x11 out of DISTRO_FEATURES, so the desktop include adds it back -- that
+# changes how score and much of the graphics stack are configured, so the task
+# hashes differ and nothing is shared with a non-desktop raspberrypi5 build.
+machine: raspberrypi5
+target: ossia-score-image-desktop

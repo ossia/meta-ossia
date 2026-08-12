@@ -24,12 +24,17 @@ the same score build.
 `ossia-score-image-desktop` needs `x11` in `DISTRO_FEATURES`, which the ossia
 distro leaves out because nothing else here wants it. That is a build
 configuration change rather than a per-image one -- it alters how score itself
-is configured -- so it has its own kas file and its own build directory, and it
-shares no sstate with the other two:
+is configured -- so it has its own kas file per board and its own build
+directory, and it shares no sstate with the other two:
 
 ```bash
-./build.sh whinlatter-qemux86-64-desktop
+./build.sh whinlatter-qemux86-64-desktop   # qemu
+./build.sh whinlatter-raspberrypi5-desktop # Pi 5 / CM5, writes a .wic.bz2
 ```
+
+The Pi 5 variant is the same desktop delta composed onto
+`whinlatter-raspberrypi5.yml`; it shares no sstate with the plain
+`whinlatter-raspberrypi5` build either, for the same reason.
 
 The desktop image also removes `ossia-score.service` from
 `sysinit.target.wants`. Left enabled, score would take DRM/KMS through eglfs
@@ -98,8 +103,9 @@ socat lz4 pigz python3-git python3-subunit`). And PEP 668 makes 24.04 refuse
 `pip install --user kas`, so use a venv or `pipx`.
 
 ```bash
-./build.sh                              # qemux86-64
-./build.sh whinlatter-raspberrypi5      # Pi 5 / CM5, writes a .wic.bz2
+./build.sh                                 # qemux86-64
+./build.sh whinlatter-raspberrypi5         # Pi 5 / CM5, writes a .wic.bz2
+./build.sh whinlatter-raspberrypi5-desktop # the same board, XFCE image
 OSSIA_YOCTO_TARGET=ossia-score-image-appliance ./build.sh
 ```
 
